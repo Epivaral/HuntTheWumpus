@@ -5,6 +5,15 @@ export interface Cell {
   explored: boolean;
 }
 
+export interface AgentState {
+  stack: { x: number; y: number }[];
+  visited: boolean[][];
+  arrows: number;
+  hasGold: boolean;
+  path: { x: number; y: number }[];
+  autoMode: boolean;
+}
+
 export interface GameState {
   board: Cell[][];
   agentPos: { x: number; y: number };
@@ -18,4 +27,5 @@ export interface GameState {
     games: number;
     victories: number;
   };
+  agentState?: AgentState;
 }

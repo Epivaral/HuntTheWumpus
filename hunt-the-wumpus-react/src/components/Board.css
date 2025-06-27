@@ -17,6 +17,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s;
+}
+
+.cell.explored {
+  background: #2d4a2d;
 }
 
 .cell img {
