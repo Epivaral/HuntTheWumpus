@@ -65,16 +65,18 @@ const App: React.FC = () => {
           </button>
         )}
         <Board game={game} />
-        <div style={{ background: '#222', color: '#fff', marginTop: 16, padding: 12, borderRadius: 8, maxHeight: 220, overflowY: 'auto', fontSize: 14 }}>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 32, minWidth: 260 }}>
+        <Stats game={game} />
+        <div style={{ background: '#222', color: '#fff', marginTop: 16, padding: 12, borderRadius: 8, maxHeight: 320, overflowY: 'auto', fontSize: 14 }}>
           <b>Action Log:</b>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {log.slice(-12).map((entry, i) => (
+            {log.slice(-18).map((entry, i) => (
               <li key={i}>{entry}</li>
             ))}
           </ul>
         </div>
       </div>
-      <Stats game={game} />
     </div>
   );
 };

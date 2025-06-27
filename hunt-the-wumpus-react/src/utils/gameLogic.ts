@@ -125,11 +125,11 @@ export function agentStep(game: GameState): GameState {
   // Check for threats (pit, wumpus, bat)
   const cell = game.board[curr.y][curr.x];
   if (cell.type === 'pit') {
-    log.push('Agent fell into a pit. Lost!');
+    log.push('Agent fell into a pit at this cell. Lost!');
     return { ...game, status: 'lost', actionLog: log };
   }
   if (cell.type === 'wumpus') {
-    log.push('Agent was eaten by the Wumpus. Lost!');
+    log.push('Agent encountered the Wumpus at this cell. Lost!');
     return { ...game, status: 'lost', actionLog: log };
   }
   if (cell.type === 'bat') {
@@ -141,7 +141,7 @@ export function agentStep(game: GameState): GameState {
       const idx = Math.floor(Math.random() * empty.length);
       agent.stack = [empty[idx]];
       agent.path.push(empty[idx]);
-      log.push(`Agent was carried by bats to (${empty[idx].x + 1},${empty[idx].y + 1})!`);
+      log.push(`Agent was carried by bats from (${curr.x + 1},${curr.y + 1}) to (${empty[idx].x + 1},${empty[idx].y + 1})!`);
       return { ...game, actionLog: log };
     }
   }
@@ -154,8 +154,8 @@ export function agentStep(game: GameState): GameState {
       log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
       if (hit) {
         game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
-        log.push('Agent killed the Wumpus!');
-        return { ...game, actionLog: log };
+        log.push('Agent killed the Wumpus! WON!');
+        return { ...game, status: 'won', actionLog: log };
       } else {
         log.push('Agent missed the Wumpus and backtracks.');
         agent.stack.pop();
