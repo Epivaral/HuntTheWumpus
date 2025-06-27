@@ -133,41 +133,51 @@ export function agentStep(game: GameState): GameState {
     return { ...game, status: 'lost', actionLog: log };
   }
   if (cell.type === 'bat') {
-    // Bat: teleport, reset stack but keep visited
+    // Bat: teleport, reset stack but keep visited and known dangers
     const empty: { x: number; y: number }[] = [];
     for (let y = 0; y < BOARD_SIZE; y++) for (let x = 0; x < BOARD_SIZE; x++)
       if (game.board[y][x].type === 'empty' && !agent.visited[y][x]) empty.push({ x, y });
     if (empty.length > 0) {
       const idx = Math.floor(Math.random() * empty.length);
       agent.stack = [empty[idx]];
-      agent.path.push(empty[idx]);
-      log.push(`Agent was carried by bats from (${curr.x + 1},${curr.y + 1}) to (${empty[idx].x + 1},${empty[idx].y + 1})!`);
+      agent.path = [empty[idx]];
+      // Do NOT reset visited, but reset stack and path (exploration history)
+      log.push(`Agent was carried by bats from (${curr.x + 1},${curr.y + 1}) to (${empty[idx].x + 1},${empty[idx].y + 1})! Exploration history reset, known dangers kept.`);
       return { ...game, actionLog: log };
     }
   }
-  // Detect adjacent threats
-  const { dangerLevel, adjWumpus } = detectThreats(game, curr.x, curr.y);
-  if (dangerLevel > 0) {
-    if (dangerLevel >= 50 && adjWumpus && agent.arrows > 0) {
-      agent.arrows--;
-      const hit = Math.random() < 0.5 || (adjWumpus.x === curr.x || adjWumpus.y === curr.y);
-      log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
-      if (hit) {
-        game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
-        log.push('Agent killed the Wumpus! WON!');
-        return { ...game, status: 'won', actionLog: log };
-      } else {
-        log.push('Agent missed the Wumpus and backtracks.');
-        agent.stack.pop();
-        return { ...game, actionLog: log };
-      }
-    } else if (dangerLevel > 10) {
-      log.push('Agent senses danger (pit or bats) and backtracks.');
+  // Detect adjacent threats and log sensory messages
+  const { dangerLevel, adjWumpus, adjBats, adjPits } = detectThreats(game, curr.x, curr.y);
+  if (adjWumpus) log.push('You smell something terrible nearby.');
+  if (adjPits) log.push('You feel a breeze nearby.');
+  if (adjBats) log.push('You hear flapping nearby.');
+
+  // Wumpus shooting logic
+  if (adjWumpus && agent.arrows > 0) {
+    agent.arrows--;
+    const hit = Math.random() < 0.5 || (adjWumpus.x === curr.x || adjWumpus.y === curr.y);
+    log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
+    if (hit) {
+      game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
+      log.push('Agent killed the Wumpus! WON!');
+      return { ...game, status: 'won', actionLog: log };
+    } else {
+      log.push('Agent missed the Wumpus and backtracks.');
       agent.stack.pop();
       return { ...game, actionLog: log };
-    } else if (dangerLevel === 10) {
-      log.push('Agent hears bats but continues.');
     }
+  } else if (adjWumpus && agent.arrows === 0) {
+    log.push('Agent senses the Wumpus nearby but has no arrows left. Backtracking.');
+    agent.stack.pop();
+    return { ...game, actionLog: log };
+  }
+  // Pit or bat adjacent: backtrack if dangerLevel > 10 (pit or bat), but not for first bat encounter
+  if (dangerLevel > 10) {
+    log.push('Agent senses danger (pit or bats) and backtracks.');
+    agent.stack.pop();
+    return { ...game, actionLog: log };
+  } else if (dangerLevel === 10) {
+    log.push('Agent hears bats but continues.');
   }
   // DFS: explore unexplored, non-dangerous neighbors
   const neighbors = getAdjacent(curr.x, curr.y);
