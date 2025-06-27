@@ -28,4 +28,5 @@ export interface GameState {
     victories: number;
   };
   agentState?: AgentState;
+  actionLog?: string[];
 }

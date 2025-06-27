@@ -14,6 +14,11 @@ const App: React.FC = () => {
   });
   const [mode, setMode] = React.useState<'auto' | 'manual'>('auto');
   const [autoRunning, setAutoRunning] = React.useState(false);
+  const [log, setLog] = React.useState<string[]>(game.actionLog || []);
+
+  React.useEffect(() => {
+    setLog(game.actionLog || []);
+  }, [game]);
 
   const handleNewGame = () => {
     const g = createNewGame();
@@ -60,6 +65,14 @@ const App: React.FC = () => {
           </button>
         )}
         <Board game={game} />
+        <div style={{ background: '#222', color: '#fff', marginTop: 16, padding: 12, borderRadius: 8, maxHeight: 220, overflowY: 'auto', fontSize: 14 }}>
+          <b>Action Log:</b>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {log.slice(-12).map((entry, i) => (
+              <li key={i}>{entry}</li>
+            ))}
+          </ul>
+        </div>
       </div>
       <Stats game={game} />
     </div>
