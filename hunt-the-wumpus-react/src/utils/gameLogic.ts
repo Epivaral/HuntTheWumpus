@@ -115,6 +115,8 @@ export function agentStep(game: GameState): GameState {
   game.explored[curr.y][curr.x] = true;
   let log = game.actionLog ? [...game.actionLog] : [];
   log.push(`Agent moved to (${curr.x + 1},${curr.y + 1})`);
+  // Update agentPos for UI
+  game.agentPos = { x: curr.x, y: curr.y };
 
   // Check for gold
   if (curr.x === game.goldPos.x && curr.y === game.goldPos.y && !agent.hasGold) {
@@ -179,10 +181,10 @@ export function agentStep(game: GameState): GameState {
   } else if (dangerLevel === 10) {
     log.push('Agent hears bats but continues.');
   }
-  // DFS: explore unexplored, non-dangerous neighbors
+  // DFS: explore unexplored neighbors (allow visiting any cell, not just empty)
   const neighbors = getAdjacent(curr.x, curr.y);
   for (const n of neighbors) {
-    if (!agent.visited[n.y][n.x] && game.board[n.y][n.x].type === 'empty') {
+    if (!agent.visited[n.y][n.x]) {
       agent.stack.push(n);
       agent.path.push(n);
       return { ...game, actionLog: log };
