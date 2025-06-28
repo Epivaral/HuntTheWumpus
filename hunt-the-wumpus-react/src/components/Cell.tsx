@@ -9,6 +9,7 @@ import { CellType } from '../utils/gameTypes';
 interface CellProps {
   type: CellType;
   explored: boolean;
+  hasAgent?: boolean;
 }
 
 const imgMap: Record<CellType, string | null> = {
@@ -20,11 +21,11 @@ const imgMap: Record<CellType, string | null> = {
   empty: null,
 };
 
-const Cell: React.FC<CellProps> = ({ type, explored }) => {
-  const imgSrc = imgMap[type];
+const Cell: React.FC<CellProps> = ({ type, explored, hasAgent }) => {
+  const imgSrc = hasAgent ? agentImg : imgMap[type];
   return (
     <div className={`cell${explored ? ' explored' : ''}`}>
-      {imgSrc && <img src={imgSrc} alt={type} width={40} height={40} />}
+      {imgSrc && <img src={imgSrc} alt={hasAgent ? 'agent' : type} width={40} height={40} />}
     </div>
   );
 };

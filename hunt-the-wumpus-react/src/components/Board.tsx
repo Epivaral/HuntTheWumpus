@@ -28,7 +28,14 @@ const Board: React.FC<BoardProps> = ({ game }) => {
         </div>
         <div className="board">
           {game.board.map((row, y) =>
-            row.map((cell, x) => <Cell key={`${x},${y}`} type={cell.type} explored={cell.explored || game.explored[y][x]} />)
+            row.map((cell, x) => (
+              <Cell
+                key={`${x},${y}`}
+                type={cell.type}
+                explored={cell.explored || game.explored[y][x]}
+                hasAgent={game.agentPos.x === x && game.agentPos.y === y}
+              />
+            ))
           )}
         </div>
       </div>

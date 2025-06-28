@@ -31,7 +31,6 @@ export function createNewGame(): GameState {
   const board: Cell[][] = Array.from({ length: BOARD_SIZE }, (_, y) =>
     Array.from({ length: BOARD_SIZE }, (_, x) => ({ type: 'empty', explored: false }))
   );
-  board[agentPos.y][agentPos.x] = { type: 'agent', explored: true };
   board[wumpusPos.y][wumpusPos.x] = { type: 'wumpus', explored: false };
   board[goldPos.y][goldPos.x] = { type: 'gold', explored: false };
   batPositions.forEach(({ x, y }) => (board[y][x] = { type: 'bat', explored: false }));
@@ -109,30 +108,45 @@ function detectThreats(game: GameState, x: number, y: number) {
 export function agentStep(game: GameState): GameState {
   if (!game.agentState || game.status !== 'playing') return game;
   const agent = game.agentState;
-  if (agent.stack.length === 0) return { ...game, status: 'lost', actionLog: [...(game.actionLog || []), 'Agent ran out of moves. Lost!'] };
-  const curr = agent.stack[agent.stack.length - 1];
-  agent.visited[curr.y][curr.x] = true;
-  game.explored[curr.y][curr.x] = true;
+  // Always get the current cell, even if stack is empty
+  const curr = agent.stack.length > 0 ? agent.stack[agent.stack.length - 1] : game.agentPos;
   let log = game.actionLog ? [...game.actionLog] : [];
-  log.push(`Agent moved to (${curr.x + 1},${curr.y + 1})`);
-  // Update agentPos for UI
+
+  // Always update agentPos for UI and stats, even after teleport or backtrack
   game.agentPos = { x: curr.x, y: curr.y };
 
-  // Check for gold
-  if (curr.x === game.goldPos.x && curr.y === game.goldPos.y && !agent.hasGold) {
+  // Only log move if stack is not empty (i.e., a real move)
+  if (agent.stack.length > 0) {
+    agent.visited[curr.y][curr.x] = true;
+    game.explored[curr.y][curr.x] = true;
+    log.push(`Agent moved to (${curr.x + 1},${curr.y + 1})`);
+    // Mark explored
+    game.explored[curr.y][curr.x] = true;
+  }
+
+  // Always check for threats (gold, pit, wumpus, bat) by cell type
+  const cell = game.board[curr.y][curr.x];
+  if (cell.type === 'gold' && !agent.hasGold) {
     agent.hasGold = true;
     log.push('Agent found the gold! WON!');
-    return { ...game, status: 'won', actionLog: log };
+    const newExplored = game.explored.map((row, j) =>
+      row.map((val, i) => (i === curr.x && j === curr.y ? true : val))
+    );
+    return { ...game, agentPos: { x: curr.x, y: curr.y }, explored: newExplored, status: 'won', actionLog: log };
   }
-  // Check for threats (pit, wumpus, bat)
-  const cell = game.board[curr.y][curr.x];
   if (cell.type === 'pit') {
     log.push('Agent fell into a pit at this cell. Lost!');
-    return { ...game, status: 'lost', actionLog: log };
+    const newExplored = game.explored.map((row, j) =>
+      row.map((val, i) => (i === curr.x && j === curr.y ? true : val))
+    );
+    return { ...game, agentPos: { x: curr.x, y: curr.y }, explored: newExplored, status: 'lost', actionLog: log };
   }
   if (cell.type === 'wumpus') {
     log.push('Agent encountered the Wumpus at this cell. Lost!');
-    return { ...game, status: 'lost', actionLog: log };
+    const newExplored = game.explored.map((row, j) =>
+      row.map((val, i) => (i === curr.x && j === curr.y ? true : val))
+    );
+    return { ...game, agentPos: { x: curr.x, y: curr.y }, explored: newExplored, status: 'lost', actionLog: log };
   }
   if (cell.type === 'bat') {
     // Bat: teleport, reset stack but keep visited and known dangers
@@ -143,9 +157,46 @@ export function agentStep(game: GameState): GameState {
       const idx = Math.floor(Math.random() * empty.length);
       agent.stack = [empty[idx]];
       agent.path = [empty[idx]];
-      // Do NOT reset visited, but reset stack and path (exploration history)
       log.push(`Agent was carried by bats from (${curr.x + 1},${curr.y + 1}) to (${empty[idx].x + 1},${empty[idx].y + 1})! Exploration history reset, known dangers kept.`);
+      // Update agentPos after teleport
+      game.agentPos = { x: empty[idx].x, y: empty[idx].y };
+      // After teleport, check for gold/pit/wumpus at new cell
+      const newCell = game.board[empty[idx].y][empty[idx].x];
+      if (newCell.type === 'gold' && !agent.hasGold) {
+        agent.hasGold = true;
+        log.push('Agent found the gold! WON!');
+        const newExplored = game.explored.map((row, j) =>
+          row.map((val, i) => (i === empty[idx].x && j === empty[idx].y ? true : val))
+        );
+        return { ...game, agentPos: { x: empty[idx].x, y: empty[idx].y }, explored: newExplored, status: 'won', actionLog: log };
+      }
+      if (newCell.type === 'pit') {
+        log.push('Agent fell into a pit at this cell. Lost!');
+        const newExplored = game.explored.map((row, j) =>
+          row.map((val, i) => (i === empty[idx].x && j === empty[idx].y ? true : val))
+        );
+        return { ...game, agentPos: { x: empty[idx].x, y: empty[idx].y }, explored: newExplored, status: 'lost', actionLog: log };
+      }
+      if (newCell.type === 'wumpus') {
+        log.push('Agent encountered the Wumpus at this cell. Lost!');
+        const newExplored = game.explored.map((row, j) =>
+          row.map((val, i) => (i === empty[idx].x && j === empty[idx].y ? true : val))
+        );
+        return { ...game, agentPos: { x: empty[idx].x, y: empty[idx].y }, explored: newExplored, status: 'lost', actionLog: log };
+      }
       return { ...game, actionLog: log };
+    }
+  }
+  // If stack is empty after all checks, then agent truly ran out of moves
+  if (agent.stack.length === 0) {
+    if (game.status === 'playing') {
+      const lastLog = (log).slice(-1)[0] || '';
+      if (/Lost!|WON!/i.test(lastLog)) {
+        return { ...game, status: 'lost', actionLog: log };
+      }
+      return { ...game, status: 'lost', actionLog: [...log, 'Agent ran out of moves. Lost!'] };
+    } else {
+      return game;
     }
   }
   // Detect adjacent threats and log sensory messages
@@ -154,34 +205,36 @@ export function agentStep(game: GameState): GameState {
   if (adjPits) log.push('You feel a breeze nearby.');
   if (adjBats) log.push('You hear flapping nearby.');
 
-  // Wumpus shooting logic
-  if (adjWumpus && agent.arrows > 0) {
-    agent.arrows--;
-    const hit = Math.random() < 0.5 || (adjWumpus.x === curr.x || adjWumpus.y === curr.y);
-    log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
-    if (hit) {
-      game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
-      log.push('Agent killed the Wumpus! WON!');
-      return { ...game, status: 'won', actionLog: log };
-    } else {
-      log.push('Agent missed the Wumpus and backtracks.');
-      agent.stack.pop();
+  // Wumpus shooting logic: shoot if adjacent and has arrows
+  if (adjWumpus) {
+    if (agent.arrows > 0 && !agent.justShot) {
+      agent.arrows--;
+      agent.justShot = true;
+      const hit = Math.random() < 0.125;
+      log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
+      if (hit) {
+        game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
+        log.push('Agent killed the Wumpus! WON!');
+        return { ...game, status: 'won', actionLog: log };
+      } else {
+        log.push('Agent missed the Wumpus and continues exploring.');
+        return { ...game, actionLog: log };
+      }
+    } else if (agent.arrows === 0) {
+      log.push('Agent senses the Wumpus nearby but has no arrows left. Must continue exploring.');
       return { ...game, actionLog: log };
     }
-  } else if (adjWumpus && agent.arrows === 0) {
-    log.push('Agent senses the Wumpus nearby but has no arrows left. Backtracking.');
+  }
+  if (agent.justShot) agent.justShot = false;
+
+  if (adjPits > 0) {
+    log.push('Agent senses a pit nearby and backtracks.');
     agent.stack.pop();
     return { ...game, actionLog: log };
   }
-  // Pit or bat adjacent: backtrack if dangerLevel > 10 (pit or bat), but not for first bat encounter
-  if (dangerLevel > 10) {
-    log.push('Agent senses danger (pit or bats) and backtracks.');
-    agent.stack.pop();
-    return { ...game, actionLog: log };
-  } else if (dangerLevel === 10) {
-    log.push('Agent hears bats but continues.');
+  if (adjBats > 0) {
+    log.push('Agent hears bats nearby, will risk once.');
   }
-  // DFS: explore unexplored neighbors (allow visiting any cell, not just empty)
   const neighbors = getAdjacent(curr.x, curr.y);
   for (const n of neighbors) {
     if (!agent.visited[n.y][n.x]) {
@@ -190,7 +243,6 @@ export function agentStep(game: GameState): GameState {
       return { ...game, actionLog: log };
     }
   }
-  // If all explored, backtrack
   log.push('All options explored, backtracking.');
   agent.stack.pop();
   return { ...game, actionLog: log };

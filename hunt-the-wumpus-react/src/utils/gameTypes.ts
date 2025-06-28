@@ -12,6 +12,7 @@ export interface AgentState {
   hasGold: boolean;
   path: { x: number; y: number }[];
   autoMode: boolean;
+  justShot?: boolean; // Prevents multiple shots per move
 }
 
 export interface GameState {
