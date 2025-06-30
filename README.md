@@ -132,9 +132,6 @@ while (game not over) {
 - TypeScript
 - Custom CSS
 
-## Credits
 
-- Game logic and UI: [Your Name]
-- Python agent reference: Eduardo Pivaral Leal
-
+---
 Enjoy playing Hunt the Wumpus!
