@@ -24,10 +24,7 @@ export interface GameState {
   pitPositions: { x: number; y: number }[];
   explored: boolean[][];
   status: 'playing' | 'won' | 'lost';
-  stats: {
-    games: number;
-    victories: number;
-  };
   agentState?: AgentState;
   actionLog?: string[];
+  prevAgentPos?: { x: number; y: number }; // Added for move validation
 }

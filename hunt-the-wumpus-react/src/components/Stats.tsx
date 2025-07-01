@@ -3,15 +3,16 @@ import { GameState } from '../utils/gameTypes';
 
 interface StatsProps {
   game: GameState;
+  stats: { games: number; victories: number };
 }
 
-const Stats: React.FC<StatsProps> = ({ game }) => {
+const Stats: React.FC<StatsProps> = ({ game, stats }) => {
   return (
     <div style={{ background: '#222', color: '#fff', padding: 16, borderRadius: 8, minWidth: 220, marginLeft: 32 }}>
       <h2 style={{ fontSize: 20, margin: '0 0 12px 0' }}>Game Stats</h2>
-      <div>Games played: <b>{game.stats.games}</b></div>
-      <div>Victories: <b>{game.stats.victories}</b></div>
-      <div>Success rate: <b>{game.stats.games ? ((game.stats.victories / game.stats.games) * 100).toFixed(2) : '0.00'}%</b></div>
+      <div>Games played: <b>{stats.games}</b></div>
+      <div>Victories: <b>{stats.victories}</b></div>
+      <div>Success rate: <b>{stats.games ? ((stats.victories / stats.games) * 100).toFixed(2) : '0.00'}%</b></div>
       <div>Agent position: <b>({game.agentPos.x + 1}, {game.agentPos.y + 1})</b></div>
       <div>Wumpus position: <b>({game.wumpusPos.x + 1}, {game.wumpusPos.y + 1})</b></div>
       <div>Gold position: <b>({game.goldPos.x + 1}, {game.goldPos.y + 1})</b></div>

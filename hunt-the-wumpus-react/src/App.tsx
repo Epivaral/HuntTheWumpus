@@ -7,8 +7,10 @@ import { GameState } from './utils/gameTypes';
 import './App.css';
 
 const App: React.FC = () => {
+  // Persistent stats state
+  const [stats, setStats] = React.useState<{ games: number; victories: number }>({ games: 0, victories: 0 });
   const [game, setGame] = React.useState<GameState>(() => {
-    const g = createNewGame();
+    const g = createNewGame(stats);
     g.agentState = createAgentState(g.agentPos);
     return g;
   });
@@ -19,8 +21,22 @@ const App: React.FC = () => {
     setLog(game.actionLog || []);
   }, [game]);
 
+  // Update stats when game ends
+  React.useEffect(() => {
+    if (game.status === 'won' || game.status === 'lost') {
+      setStats((prev) => {
+        const isWin = game.status === 'won';
+        return {
+          games: prev.games + 1,
+          victories: prev.victories + (isWin ? 1 : 0),
+        };
+      });
+    }
+    // eslint-disable-next-line
+  }, [game.status]);
+
   const handleNewGame = () => {
-    const g = createNewGame();
+    const g = createNewGame(stats);
     g.agentState = createAgentState(g.agentPos);
     setGame(g);
     setAutoRunning(false);
@@ -63,7 +79,7 @@ const App: React.FC = () => {
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flex: 1, width: '100%', marginTop: 0 }}>
         <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 32 }}>
-          <Stats game={game} />
+          <Stats game={game} stats={stats} />
         </div>
         <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Board game={game} />
@@ -72,14 +88,15 @@ const App: React.FC = () => {
           <div style={{ background: '#222', color: '#fff', marginTop: 0, padding: 12, borderRadius: 8, maxHeight: 400, overflowY: 'auto', fontSize: 14, minWidth: 340, width: 340 }}>
             <b>Action Log:</b>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {log.slice(-18).map((entry, i) => {
+              {log.slice(-40).map((entry, i) => {
                 let color = '#fff';
-                if (/WON!|killed the Wumpus|found the gold/i.test(entry)) color = '#00e676'; // green
+                if (/^\[GOLD\]/.test(entry)) color = 'gold';
+                else if (/WON!|killed the Wumpus|found the gold/i.test(entry)) color = '#00e676'; // green
                 else if (/Lost!|fell into a pit|encountered the Wumpus/i.test(entry)) color = '#ff7043'; // orange/red
                 else if (/warning|breeze|smell|hear flapping/i.test(entry)) color = '#b388ff'; // purple
                 else if (/shoots|arrow|teleport|carried by bats/i.test(entry)) color = '#4fc3f7'; // light blue
                 return (
-                  <li key={i} style={{ color }}>{entry}</li>
+                  <li key={i} style={{ color }}>{entry.replace(/^\[GOLD\]\s*/, '')}</li>
                 );
               })}
             </ul>
