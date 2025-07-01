@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'hunt-the-wumpus-react/**'
+      - '.github/workflows/azure-static-web-apps-agreeable-river-04a1e2f1e.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+    paths:
+      - 'hunt-the-wumpus-react/**'
+      - '.github/workflows/azure-static-web-apps-agreeable-river-04a1e2f1e.yml'
 
 jobs:
   build_and_deploy_job:
