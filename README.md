@@ -18,11 +18,27 @@ Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x
 
 ## Game Rules
 
-- **Gold (x1):** If the agent enters the gold cell, it immediately wins the game. There is no notification in adjacent rooms.
-- **Wumpus (x1):** If the agent enters the Wumpus cell, it immediately loses. If adjacent, the agent receives the message "You smell something terrible" and can shoot an arrow (if available). If the shot hits (1/8 chance), the agent wins. If it misses or has no arrows left, the agent must continue exploring. The agent starts with 3 arrows and can only shoot once per move.
-- **Pit (x1):** If the agent enters a pit cell, it immediately loses. If adjacent, the agent receives the message "You feel a breeze" and will backtrack to avoid the pit.
-- **Bat (x1):** If the agent enters a bat cell, it is teleported to a random empty cell, and its exploration stack is reset (visited cells are kept, so the agent does not revisit them). If adjacent, the agent receives the message "You hear flapping" and may risk entering the cell once.
-- **Exploration:** The agent explores the cave using DFS, marking explored cells and backtracking when necessary. If there are no more cells to explore, the agent loses.
+- **Gold (x1):** If the agent enters the gold cell, it immediately wins the game.
+
+  There is no notification in adjacent rooms.
+  
+- **Wumpus (x1):** If the agent enters the Wumpus cell, it immediately loses.
+
+  If adjacent, the agent receives the message "You smell something terrible" and can shoot an arrow (if available).
+
+  If the shot hits (1/8 chance), the agent wins. If it misses or has no arrows left, the agent must continue exploring. The agent starts with 3 arrows and can only shoot once per move.
+
+- **Pit (x4):** If the agent enters a pit cell, it immediately loses.
+
+  If adjacent, the agent receives the message "You feel a breeze" and will backtrack to avoid the pit.
+
+- **Bat (x8):** If the agent enters a bat cell, it is teleported to a random empty cell, and its exploration stack is reset (visited cells are kept, so the agent does not revisit them).
+
+  If adjacent, the agent receives the message "You hear flapping" and may risk entering the cell once.
+  
+- **Exploration:** The agent explores the cave using DFS, marking explored cells and backtracking when necessary.
+
+  If there are no more cells to explore, the agent loses.
 
 
 
