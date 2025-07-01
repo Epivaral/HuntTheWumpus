@@ -67,21 +67,31 @@ export function createAgentState(agentPos: { x: number; y: number }): AgentState
 
 // Directions: up, right, down, left
 const DIRS = [
-  { dx: 0, dy: -1 },
-  { dx: 1, dy: 0 },
-  { dx: 0, dy: 1 },
-  { dx: -1, dy: 0 },
+  { dx: 0, dy: -1 },  // up
+  { dx: 1, dy: 0 },   // right
+  { dx: 0, dy: 1 },   // down
+  { dx: -1, dy: 0 },  // left
 ];
+
+// Helper: shuffle an array in-place
+function shuffle<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Helper: get adjacent cells in random order
+function getAdjacent(x: number, y: number) {
+  const dirs = shuffle([...DIRS]);
+  return dirs
+    .map(({ dx, dy }) => ({ x: x + dx, y: y + dy }))
+    .filter(({ x, y }) => isValid(x, y));
+}
 
 function isValid(x: number, y: number) {
   return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
-}
-
-// Helper: get adjacent cells
-function getAdjacent(x: number, y: number) {
-  return DIRS
-    .map(({ dx, dy }) => ({ x: x + dx, y: y + dy }))
-    .filter(({ x, y }) => isValid(x, y));
 }
 
 // Helper: detect threats in adjacent cells
@@ -124,8 +134,9 @@ export function agentStep(game: GameState): GameState {
     game.explored[curr.y][curr.x] = true;
   }
 
-  // Always check for threats (gold, pit, wumpus, bat) by cell type
+  // 1. Always check for threats (gold, pit, wumpus, bat) by cell type FIRST and return immediately if found
   const cell = game.board[curr.y][curr.x];
+  log.push(`DEBUG: Checking cell (${curr.x + 1},${curr.y + 1}) for gold. Cell type: ${cell.type}`);
   if (cell.type === 'gold' && !agent.hasGold) {
     agent.hasGold = true;
     log.push('Agent found the gold! WON!');
@@ -187,7 +198,8 @@ export function agentStep(game: GameState): GameState {
       return { ...game, actionLog: log };
     }
   }
-  // If stack is empty after all checks, then agent truly ran out of moves
+
+  // 2. If stack is empty after all checks, then agent truly ran out of moves
   if (agent.stack.length === 0) {
     if (game.status === 'playing') {
       const lastLog = (log).slice(-1)[0] || '';
@@ -199,34 +211,34 @@ export function agentStep(game: GameState): GameState {
       return game;
     }
   }
-  // Detect adjacent threats and log sensory messages
+
+  // 3. Detect adjacent threats and log sensory messages
   const { dangerLevel, adjWumpus, adjBats, adjPits } = detectThreats(game, curr.x, curr.y);
   if (adjWumpus) log.push('You smell something terrible nearby.');
   if (adjPits) log.push('You feel a breeze nearby.');
   if (adjBats) log.push('You hear flapping nearby.');
 
-  // Wumpus shooting logic: shoot if adjacent and has arrows
-  if (adjWumpus) {
-    if (agent.arrows > 0 && !agent.justShot) {
-      agent.arrows--;
-      agent.justShot = true;
-      const hit = Math.random() < 0.125;
-      log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
-      if (hit) {
-        game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
-        log.push('Agent killed the Wumpus! WON!');
-        return { ...game, status: 'won', actionLog: log };
-      } else {
-        log.push('Agent missed the Wumpus and continues exploring.');
-        return { ...game, actionLog: log };
-      }
-    } else if (agent.arrows === 0) {
-      log.push('Agent senses the Wumpus nearby but has no arrows left. Must continue exploring.');
-      return { ...game, actionLog: log };
+  // 4. Wumpus shooting logic: shoot if adjacent and has arrows
+  if (adjWumpus && agent.arrows > 0 && !agent.justShot) {
+    agent.arrows--;
+    agent.justShot = true;
+    const hit = Math.random() < 0.125;
+    log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
+    if (hit) {
+      game.board[adjWumpus.y][adjWumpus.x].type = 'empty';
+      log.push('Agent killed the Wumpus! WON!');
+      return { ...game, status: 'won', actionLog: log };
+    } else {
+      log.push('Agent missed the Wumpus and continues exploring.');
+      // Do not return; allow agent to continue exploring after missing
     }
+  } else if (adjWumpus && agent.arrows === 0) {
+    log.push('Agent senses the Wumpus nearby but has no arrows left. Must continue exploring.');
+    // Do not return; allow agent to continue exploring after logging
   }
   if (agent.justShot) agent.justShot = false;
 
+  // 5. Pit/backtrack logic
   if (adjPits > 0) {
     log.push('Agent senses a pit nearby and backtracks.');
     agent.stack.pop();
@@ -236,12 +248,54 @@ export function agentStep(game: GameState): GameState {
     log.push('Agent hears bats nearby, will risk once.');
   }
   const neighbors = getAdjacent(curr.x, curr.y);
+  let hazardousNeighbor: { x: number; y: number } | null = null;
   for (const n of neighbors) {
     if (!agent.visited[n.y][n.x]) {
+      // --- WUMPUS LOOKAHEAD SHOOTING LOGIC ---
+      if (game.board[n.y][n.x].type === 'wumpus' && agent.arrows > 0) {
+        agent.arrows--;
+        agent.justShot = true;
+        const hit = Math.random() < 0.125;
+        log.push(`Agent sees the Wumpus ahead at (${n.x + 1},${n.y + 1}) and shoots. Arrows left: ${agent.arrows}`);
+        if (hit) {
+          game.board[n.y][n.x].type = 'empty';
+          log.push('Agent killed the Wumpus! WON!');
+          return { ...game, status: 'won', actionLog: log };
+        } else {
+          log.push('Agent missed the Wumpus and continues exploring.');
+          // Continue to next neighbor or move if no more arrows
+        }
+      } else if (game.board[n.y][n.x].type === 'wumpus' && agent.arrows === 0) {
+        log.push(`Agent sees the Wumpus ahead at (${n.x + 1},${n.y + 1}) but has no arrows left. Must risk moving.`);
+        // Continue to move into the Wumpus cell (will lose on next step)
+      }
+      // --- GOLD/PIT LOOKAHEAD LOGIC ---
+      if (game.board[n.y][n.x].type === 'gold' && !agent.hasGold) {
+        agent.hasGold = true;
+        log.push(`Agent sees gold ahead at (${n.x + 1},${n.y + 1}) and collects it! WON!`);
+        const newExplored = game.explored.map((row, j) =>
+          row.map((val, i) => (i === n.x && j === n.y ? true : val))
+        );
+        return { ...game, agentPos: { x: n.x, y: n.y }, explored: newExplored, status: 'won', actionLog: log };
+      }
+      // Instead of skipping pits, mark as hazardous and only avoid if other options exist
+      if (game.board[n.y][n.x].type === 'pit') {
+        log.push(`Agent sees a pit ahead at (${n.x + 1},${n.y + 1}) and marks it as hazardous.`);
+        if (!hazardousNeighbor) hazardousNeighbor = n;
+        agent.visited[n.y][n.x] = true; // Mark as visited to avoid unless forced
+        continue; // Try other options first
+      }
       agent.stack.push(n);
       agent.path.push(n);
       return { ...game, actionLog: log };
     }
+  }
+  // If all options are visited, prefer hazardous (pit) cells before backtracking
+  if (hazardousNeighbor) {
+    log.push(`Agent has no safe moves left and risks moving into pit at (${hazardousNeighbor.x + 1},${hazardousNeighbor.y + 1}).`);
+    agent.stack.push(hazardousNeighbor);
+    agent.path.push(hazardousNeighbor);
+    return { ...game, actionLog: log };
   }
   log.push('All options explored, backtracking.');
   agent.stack.pop();

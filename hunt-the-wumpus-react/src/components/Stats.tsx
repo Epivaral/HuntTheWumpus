@@ -17,6 +17,9 @@ const Stats: React.FC<StatsProps> = ({ game }) => {
       <div>Gold position: <b>({game.goldPos.x + 1}, {game.goldPos.y + 1})</b></div>
       <div>Bats: <b>{game.batPositions.length}</b></div>
       <div>Pits: <b>{game.pitPositions.length}</b></div>
+      {game.agentState && (
+        <div>Arrows left: <b>{game.agentState.arrows}</b></div>
+      )}
       <div>Status: <b style={{ color: game.status === 'won' ? '#0f0' : game.status === 'lost' ? '#f00' : '#fff' }}>{game.status}</b></div>
     </div>
   );
