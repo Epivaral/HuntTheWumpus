@@ -1,8 +1,8 @@
 import { GameState, Cell, CellType, AgentState } from './gameTypes';
 
 const BOARD_SIZE = 20;
-const NUM_BATS = 1;
-const NUM_PITS = 1;
+const NUM_BATS = 8;
+const NUM_PITS = 4;
 
 function getRandomEmptyCell(occupied: Set<string>): { x: number; y: number } {
   let x, y;
@@ -137,7 +137,7 @@ export function agentStep(game: GameState): GameState {
       if (agent.visited[y][x]) visitedCells.push(`(${x + 1},${y + 1})`);
     }
   }
-  log.push(`[DEBUG] Visited cells: ${visitedCells.join(', ')}`);
+  
 
   // Sensory warnings for current cell (before any action)
   let sensedWumpus = false, sensedPit = false, sensedBat = false;
@@ -251,12 +251,12 @@ export function agentStep(game: GameState): GameState {
 
   // --- DFS MOVEMENT: Choose next move ---
   let moved = false;
-  // If gold is adjacent, move to it immediately
-  if (goldNeighbor) {
+  // If gold is adjacent and unvisited, move to it immediately
+  if (goldNeighbor && !agent.visited[goldNeighbor.y][goldNeighbor.x]) {
     agent.stack.push(goldNeighbor);
     moved = true;
   } else {
-    // Prefer unvisited neighbor if gold is not adjacent
+    // Prefer unvisited neighbor if gold is not adjacent or already visited
     for (const n of neighbors) {
       if (!agent.visited[n.y][n.x]) {
         agent.stack.push(n);
@@ -273,19 +273,14 @@ export function agentStep(game: GameState): GameState {
   if (agent.stack.length > 0) {
     const pos = agent.stack[agent.stack.length - 1];
     // Only mark as visited if the agent is actually moving to this cell now
-    if (!agent.visited[pos.y][pos.x]) {
+    if (game.agentPos.x !== pos.x || game.agentPos.y !== pos.y) {
       agent.visited[pos.y][pos.x] = true;
       game.explored[pos.y][pos.x] = true;
     }
     game.agentPos = { x: pos.x, y: pos.y };
-    // Log visited cells for debugging (after updating agentPos and visited)
-    const visitedCells = [];
-    for (let y = 0; y < BOARD_SIZE; y++) {
-      for (let x = 0; x < BOARD_SIZE; x++) {
-        if (agent.visited[y][x]) visitedCells.push(`(${x + 1},${y + 1})`);
-      }
-    }
-    log.push(`[DEBUG] Visited cells: ${visitedCells.join(', ')}`);
+    // Removed: log.push(`Agent moved to (${pos.x + 1},${pos.y + 1})`);
+    // Removed: log.push(`DEBUG: Cell type at (${pos.x + 1},${pos.y + 1}) is '${game.board[pos.y][pos.x].type}'`);
+    // Removed: log.push('DEBUG: Adjacent cells: ' + posNeighbors.map(n => `(${n.x + 1},${n.y + 1}):${game.board[n.y][n.x].type}`).join(', '));
     // Sensory warnings for new cell (after move)
     let sensedWumpus2 = false, sensedPit2 = false, sensedBat2 = false;
     for (const n of neighbors) {
@@ -319,6 +314,22 @@ export function agentStep(game: GameState): GameState {
       return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
     }
   } else {
+    // If stack is empty, check for win/loss at current position as well
+    const pos = game.agentPos;
+    const cell = game.board[pos.y][pos.x];
+    if (cell.type === 'gold' && !agent.hasGold) {
+      agent.hasGold = true;
+      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
+    }
+    if (cell.type === 'pit') {
+      log.push(`Agent fell into a pit at this cell. Lost! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
+    }
+    if (cell.type === 'wumpus') {
+      log.push(`Agent encountered the Wumpus at this cell. Lost! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
+    }
     log.push('No moves left. Agent is stuck.');
     return { ...game, status: 'lost', actionLog: log };
   }
