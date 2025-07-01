@@ -105,7 +105,7 @@ function detectThreats(game: GameState, x: number, y: number) {
       dangerLevel += 50;
       adjWumpus = { x: nx, y: ny };
     } else if (t === 'pit') {
-      dangerLevel += 20;
+      dangerLevel += 10;
       adjPits++;
     } else if (t === 'bat') {
       dangerLevel += 10;
