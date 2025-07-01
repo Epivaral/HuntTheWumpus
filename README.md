@@ -67,7 +67,6 @@ Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x
       - `pit.png` — Pit hazard
       - `gold.png` — Gold (treasure)
   - `public/` — Static files (e.g., `index.html`)
-- `Hunt_the_Wumpus_Agente.py` — Python reference agent (not used in frontend)
 
 
 ## How the App Works (Step by Step)
