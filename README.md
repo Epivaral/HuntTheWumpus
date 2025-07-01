@@ -1,8 +1,14 @@
 # HuntTheWumpus
 
+
+You can see it live here: [https://agreeable-river-04a1e2f1e.1.azurestaticapps.net/](https://agreeable-river-04a1e2f1e.1.azurestaticapps.net/)
+
+
 ## Project Description
 
 Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x20 labyrinth teeming with hidden dangers and ancient treasure. In this web-based adventure, you guide a daring explorer through twisting tunnels, evading bottomless pits, mischievous bats, and the dreaded Wumpus itself. Your quest: outwit the hazards, claim the fabled gold, or defeat the monster that lurks in the shadows. Built with React and TypeScript, and inspired by classic logic games, Hunt the Wumpus blends strategy, suspense, and a touch of luck in every playthrough.
+
+
 
 Based on [This Repo](https://github.com/Epivaral/Projects/tree/main/Hunt_the_Wumpus), I made this project long time ago for an University Project, but it was text only.
 with the help of Github Copilot, I was able to give this game a proper frontend using React and Typescript.
