@@ -6,30 +6,15 @@ Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x
 
 ## Inhabitants and Mysteries of the Cavern
 
-<div style="overflow: auto; margin-bottom: 24px;">
-  <img src="img/agent.png" alt="Agent" style="float:left; margin-right:16px;"/>
-  <strong>Agent:</strong> The brave explorer—a cunning adventurer who dares to enter the perilous Wumpus Caverns. Driven by legends of lost treasure, the agent must rely on wits and courage to survive lurking dangers and claim the legendary gold.
-</div>
+| Image | Description |
+|-------|-------------|
+| <img src="img/agent.png" width="100"> | **Agent:** The brave explorer—a cunning adventurer who dares to enter the perilous Wumpus Caverns. Driven by legends of lost treasure, the agent must rely on wits and courage to survive lurking dangers and claim the legendary gold. |
+| <img src="img/wumpus.png" width="100"> | **Wumpus:** The fearsome Wumpus—a monstrous beast that haunts the deepest shadows of the cave. Its foul stench warns of its presence, and a single misstep means certain doom—unless the agent is bold enough to face it with bow and arrow. |
+| <img src="img/bat.png" width="100"> | **Bat:** Mischievous cave bats—ancient guardians of the labyrinth. If disturbed, they snatch the explorer and whisk them away to a random, unknown chamber, scattering all sense of direction and forcing a new path through the darkness. |
+| <img src="img/pit.png" width="100"> | **Pit:** Bottomless pits—remnants of ancient collapses and forgotten traps. One wrong move, and the explorer will plummet into the abyss, never to be seen again. A chilling breeze is the only warning of their presence. |
+| <img src="img/gold.png" width="100"> | **Gold:** The fabled treasure—hidden for centuries in the heart of the cave. Many have sought it, but only the clever and the lucky will find it and escape with their fortune. |
 
-<div style="overflow: auto; margin-bottom: 24px;">
-  <img src="img/wumpus.png" alt="Wumpus" style="float:left; margin-right:16px;"/>
-  <strong>Wumpus:</strong> The fearsome Wumpus—a monstrous beast that haunts the deepest shadows of the cave. Its foul stench warns of its presence, and a single misstep means certain doom—unless the agent is bold enough to face it with bow and arrow.
-</div>
 
-<div style="overflow: auto; margin-bottom: 24px;">
-  <img src="img/bat.png" alt="Bat" style="float:left; margin-right:16px;"/>
-  <strong>Bat:</strong> Mischievous cave bats—ancient guardians of the labyrinth. If disturbed, they snatch the explorer and whisk them away to a random, unknown chamber, scattering all sense of direction and forcing a new path through the darkness.
-</div>
-
-<div style="overflow: auto; margin-bottom: 24px;">
-  <img src="img/pit.png" alt="Pit" style="float:left; margin-right:16px;"/>
-  <strong>Pit:</strong> Bottomless pits—remnants of ancient collapses and forgotten traps. One wrong move, and the explorer will plummet into the abyss, never to be seen again. A chilling breeze is the only warning of their presence.
-</div>
-
-<div style="overflow: auto; margin-bottom: 24px;">
-  <img src="img/gold.png" alt="Gold" style="float:left; margin-right:16px;"/>
-  <strong>Gold:</strong> The fabled treasure—hidden for centuries in the heart of the cave. Many have sought it, but only the clever and the lucky will find it and escape with their fortune.
-</div>
 
 ## Game Rules
 
