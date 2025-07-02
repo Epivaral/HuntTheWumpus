@@ -1,5 +1,6 @@
 # HuntTheWumpus
 
+My personal view on the [classic game](https://en.m.wikipedia.org/wiki/Hunt_the_Wumpus), played by an agent that uses a depth-first search (DFS) algorithm to explore the cave, avoid dangers, and attempt to win by either finding the gold or killing the Wumpus. 
 
 You can see it live here: [https://agreeable-river-04a1e2f1e.1.azurestaticapps.net/](https://agreeable-river-04a1e2f1e.1.azurestaticapps.net/)
 
@@ -8,7 +9,9 @@ You can see it live here: [https://agreeable-river-04a1e2f1e.1.azurestaticapps.n
 
 ![frontpage](img/Page.png)
 
-Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x20 labyrinth teeming with hidden dangers and ancient treasure. In this web-based adventure, you guide a daring explorer through twisting tunnels, evading bottomless pits, mischievous bats, and the dreaded Wumpus itself. Your quest: outwit the hazards, claim the fabled gold, or defeat the monster that lurks in the shadows. Built with React and TypeScript, and inspired by classic logic games, Hunt the Wumpus blends strategy, suspense, and a touch of luck in every playthrough.
+Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x20 labyrinth teeming with hidden dangers and ancient treasure. In this web-based adventure, you guide a daring explorer through twisting tunnels, evading bottomless pits, mischievous bats, and the dreaded Wumpus itself. 
+
+Agent's quest: outwit the hazards, claim the fabled gold, or defeat the monster that lurks in the shadows. Built with React and TypeScript, and inspired by classic logic games, Hunt the Wumpus blends strategy, suspense, and a touch of luck in every playthrough.
 
 
 
