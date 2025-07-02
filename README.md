@@ -179,4 +179,7 @@ The agent uses a DFS strategy to explore the cave. DFS is a graph traversal algo
 - Custom CSS
 
 ---
-Enjoy playing Hunt the Wumpus!
+
+## Quest for the students: 
+
+Implement the Human Player logic, where you can control the agent, instead the auto-explore.
