@@ -6,7 +6,7 @@ You can see it live here: [https://agreeable-river-04a1e2f1e.1.azurestaticapps.n
 
 ## Project Description
 
-![frontpage](img/page.png)
+![frontpage](img/Page.png)
 
 Embark on a perilous journey into the legendary Wumpus Caverns—a sprawling 20x20 labyrinth teeming with hidden dangers and ancient treasure. In this web-based adventure, you guide a daring explorer through twisting tunnels, evading bottomless pits, mischievous bats, and the dreaded Wumpus itself. Your quest: outwit the hazards, claim the fabled gold, or defeat the monster that lurks in the shadows. Built with React and TypeScript, and inspired by classic logic games, Hunt the Wumpus blends strategy, suspense, and a touch of luck in every playthrough.
 
