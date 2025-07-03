@@ -36,7 +36,7 @@ const Cell: React.FC<CellProps> = ({ type, explored, hasAgent, fogged }) => {
           alt="fog"
           width={40}
           height={40}
-          style={{ position: 'absolute', top: 0, left: 0, zIndex: 2, pointerEvents: 'none', opacity: 0.7 }}
+          style={{ position: 'absolute', top: 0, left: 0, zIndex: 2, pointerEvents: 'none', opacity: 0.9 }}
         />
       )}
     </div>

@@ -152,13 +152,15 @@ export function createNewGame(stats: { games: number; victories: number }): Game
 
   // Initialize fog grid: true = fogged, false = visible
   const fog = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(true));
-  // Reveal agent's initial visible area
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
-      const x = agentPos.x + dx;
-      const y = agentPos.y + dy;
-      if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
-        fog[y][x] = false;
+  // Reveal agent's initial visible area (squircle/octagon shape)
+  for (let dy = -3; dy <= 3; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) <= 3 && !(Math.abs(dx) >= 2 && Math.abs(dy) >= 2)) {
+        const x = agentPos.x + dx;
+        const y = agentPos.y + dy;
+        if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+          fog[y][x] = false;
+        }
       }
     }
   }
@@ -462,12 +464,14 @@ export function agentStep(game: GameState): GameState {
   // Inline fog update logic here for clarity
   const { agentPos, fog } = game;
   const newFog = fog.map(row => [...row]);
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
-      const x = agentPos.x + dx;
-      const y = agentPos.y + dy;
-      if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
-        newFog[y][x] = false;
+  for (let dy = -3; dy <= 3; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) <= 3 && !(Math.abs(dx) >= 2 && Math.abs(dy) >= 2)) {
+        const x = agentPos.x + dx;
+        const y = agentPos.y + dy;
+        if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+          newFog[y][x] = false;
+        }
       }
     }
   }
@@ -725,12 +729,14 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
   // Inline fog update logic here for clarity
   const { agentPos, fog } = game;
   const newFog = fog.map(row => [...row]);
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
-      const x = agentPos.x + dx;
-      const y = agentPos.y + dy;
-      if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
-        newFog[y][x] = false;
+  for (let dy = -3; dy <= 3; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) <= 3 && !(Math.abs(dx) >= 2 && Math.abs(dy) >= 2)) {
+        const x = agentPos.x + dx;
+        const y = agentPos.y + dy;
+        if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+          newFog[y][x] = false;
+        }
       }
     }
   }
