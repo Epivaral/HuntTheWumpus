@@ -1,10 +1,54 @@
 import React from 'react';
 import Board from './components/Board';
 import Stats from './components/Stats';
-import Controls from './components/Controls';
 import { createNewGame, createAgentState, agentStepWithAlgorithm } from './utils/gameLogic';
 import { GameState } from './utils/gameTypes';
 import './App.css';
+import agentImg from './assets/agent.png';
+import wumpusImg from './assets/wumpus.png';
+import pitImg from './assets/pit.png';
+import goldImg from './assets/gold.png';
+import wallImg from './assets/wall.png';
+
+const getModalContent = (game: GameState, log: string[]) => {
+  if (game.status !== 'won' && game.status !== 'lost') return null;
+  let title = '', desc = '', border = '', asset = null;
+
+  // Find the last relevant message
+  let lastMsg = '';
+  function cleanMsg(msg: string) {
+    // Remove any (at x,y) or (at xx,yy) at the end of the message
+    return msg.replace(/\(at\s*\d+,\d+\)/gi, '').replace(/\(at\s*\d+\,\d+\)/gi, '').replace(/\s+$/, '').trim();
+  }
+  if (game.status === 'won') {
+    title = 'You Win!';
+    border = '4px solid #00e676';
+    lastMsg = log.slice().reverse().find(l => /Agent found the gold|Agent killed the Wumpus/i) || '';
+    if (/Agent found the gold/i.test(lastMsg)) {
+      asset = goldImg;
+    } else if (/Agent killed the Wumpus/i.test(lastMsg)) {
+      asset = wumpusImg;
+    } else {
+      asset = goldImg;
+    }
+    desc = cleanMsg(lastMsg) || 'You win!';
+  } else {
+    title = 'You Lose';
+    border = '4px solid #ff7043';
+    lastMsg = log.slice().reverse().find(l => /Agent fell into a pit|Agent encountered the Wumpus|No moves left/i) || '';
+    if (/Agent fell into a pit/i.test(lastMsg)) {
+      asset = pitImg;
+    } else if (/Agent encountered the Wumpus/i.test(lastMsg)) {
+      asset = wumpusImg;
+    } else if (/No moves left/i.test(lastMsg)) {
+      asset = wallImg;
+    } else {
+      asset = wumpusImg;
+    }
+    desc = cleanMsg(lastMsg) || 'You lost!';
+  }
+  return { title, desc, border, asset };
+};
 
 const App: React.FC = () => {
   // Persistent stats state
@@ -17,6 +61,7 @@ const App: React.FC = () => {
   const [autoRunning, setAutoRunning] = React.useState(false);
   const [log, setLog] = React.useState<string[]>(game.actionLog || []);
   const [algorithm, setAlgorithm] = React.useState<string>('dfs');
+  const [modalOpen, setModalOpen] = React.useState(false);
 
   React.useEffect(() => {
     setLog(game.actionLog || []);
@@ -34,6 +79,10 @@ const App: React.FC = () => {
       });
     }
     // eslint-disable-next-line
+  }, [game.status]);
+
+  React.useEffect(() => {
+    if (game.status === 'won' || game.status === 'lost') setModalOpen(true);
   }, [game.status]);
 
   const handleNewGame = () => {
@@ -59,8 +108,34 @@ const App: React.FC = () => {
     setAutoRunning((r) => !r);
   };
 
+  const modalContent = getModalContent(game, log);
+
   return (
     <div className="App" style={{ display: 'flex', flexDirection: 'row', minHeight: '100vh', width: '100vw', alignItems: 'flex-start', justifyContent: 'flex-start' }}>
+      {/* Modal overlay */}
+      {modalOpen && modalContent && (
+        <div
+          onClick={() => setModalOpen(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.55)', zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: '#181818', color: '#fff', borderRadius: 18, border: modalContent.border, minWidth: 420, maxWidth: 540, minHeight: 180, boxShadow: '0 8px 32px #000a', display: 'flex', flexDirection: 'row', alignItems: 'center', padding: 32, cursor: 'pointer', position: 'relative', gap: 24
+            }}
+          >
+            <img src={agentImg} alt="Agent" style={{ width: 72, height: 72, borderRadius: 12, background: '#222', marginRight: 16 }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 12 }}>{modalContent.title}</div>
+              <div style={{ fontSize: 18, opacity: 0.92, whiteSpace: 'pre-line' }}>{modalContent.desc}</div>
+              <div style={{ fontSize: 14, opacity: 0.6, marginTop: 18 }}>(Click anywhere to close)</div>
+            </div>
+            <img src={modalContent.asset} alt="Result" style={{ width: 72, height: 72, borderRadius: 12, background: '#222', marginLeft: 16 }} />
+          </div>
+        </div>
+      )}
       {/* Left column: Stats panel */}
       <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '32px 0 0 32px' }}>
         <Stats

@@ -1,8 +1,8 @@
 import { GameState, Cell, CellType, AgentState } from './gameTypes';
 
 const BOARD_SIZE = 20;
-const NUM_BATS = 4;
-const NUM_PITS = 2;
+const NUM_BATS = 6;
+const NUM_PITS = 3;
 
 // Predefined wall cluster shapes (all size 5, all rotations)
 const WALL_SHAPES_5 = [
@@ -207,27 +207,6 @@ function isValid(x: number, y: number) {
   return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
 }
 
-// Helper: detect threats in adjacent cells
-function detectThreats(game: GameState, x: number, y: number) {
-  let dangerLevel = 0;
-  let adjWumpus: { x: number; y: number } | null = null;
-  let adjBats = 0, adjPits = 0;
-  for (const { x: nx, y: ny } of getAdjacent(x, y)) {
-    const t = game.board[ny][nx].type;
-    if (t === 'wumpus') {
-      dangerLevel += 50;
-      adjWumpus = { x: nx, y: ny };
-    } else if (t === 'pit') {
-      dangerLevel += 10;
-      adjPits++;
-    } else if (t === 'bat') {
-      dangerLevel += 10;
-      adjBats++;
-    }
-  }
-  return { dangerLevel, adjWumpus, adjBats, adjPits };
-}
-
 export function agentStep(game: GameState): GameState {
   if (!game.agentState || game.status !== 'playing') return game;
   const agent = game.agentState;
@@ -274,7 +253,7 @@ export function agentStep(game: GameState): GameState {
   // Helper to check instant win after any move
   function checkGoldWin(g: GameState, a: typeof agent, logArr: string[]) {
     if (g.agentPos.x === g.goldPos.x && g.agentPos.y === g.goldPos.y) {
-      logArr.push(`[GOLD] Agent found the gold! WON! (at ${g.agentPos.x + 1},${g.agentPos.y + 1})`);
+      logArr.push(`Agent found the gold! WON! (at ${g.agentPos.x + 1},${g.agentPos.y + 1})`);
       return { ...g, status: 'won' as const, actionLog: logArr };
     }
     return null;
@@ -295,7 +274,7 @@ export function agentStep(game: GameState): GameState {
 
   // Always check for gold at the agent's current position after any move or backtrack
   if (game.agentPos.x === game.goldPos.x && game.agentPos.y === game.goldPos.y) {
-    log.push(`[GOLD] Agent found the gold! WON! (at ${game.agentPos.x + 1},${game.agentPos.y + 1})`);
+    log.push(`Agent found the gold! WON! (at ${game.agentPos.x + 1},${game.agentPos.y + 1})`);
     return { ...game, status: 'won', actionLog: log };
   }
 
@@ -373,8 +352,7 @@ export function agentStep(game: GameState): GameState {
     }
   }
   if (goldNearby) {
-    // Use a special marker for gold messages instead of HTML for console compatibility
-    log.push(`[GOLD] You are lucky, gold is near! (at ${curr.x + 1},${curr.y + 1})`);
+    log.push(`You are lucky, gold is near! (at ${curr.x + 1},${curr.y + 1})`);
   }
 
   // --- DFS MOVEMENT: Choose next move ---
@@ -423,12 +401,12 @@ export function agentStep(game: GameState): GameState {
     // After moving, check for gold in neighbors and log if found
     const goldNear = getAdjacent(pos.x, pos.y).some(n => game.board[n.y][n.x].type === 'gold');
     if (goldNear) {
-      log.push(`[GOLD] You are lucky, gold is near! (at ${pos.x + 1},${pos.y + 1})`);
+      log.push(`You are lucky, gold is near! (at ${pos.x + 1},${pos.y + 1})`);
     }
     // Always check for gold/pit/wumpus at the new cell, even if already visited
     const cell = game.board[pos.y][pos.x];
     if (cell.type === 'gold') {
-      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      log.push(`Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
       return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
     }
     if (cell.type === 'pit') {
@@ -448,7 +426,7 @@ export function agentStep(game: GameState): GameState {
     const pos = game.agentPos;
     const cell = game.board[pos.y][pos.x];
     if (cell.type === 'gold') {
-      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      log.push(`Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
       return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
     }
     if (cell.type === 'pit') {
@@ -513,7 +491,7 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
   // Helper to check instant win after any move
   function checkGoldWin(g: GameState, a: typeof agent, logArr: string[]) {
     if (g.agentPos.x === g.goldPos.x && g.agentPos.y === g.goldPos.y) {
-      logArr.push(`[GOLD] Agent found the gold! WON! (at ${g.agentPos.x + 1},${g.agentPos.y + 1})`);
+      logArr.push(`Agent found the gold! WON! (at ${g.agentPos.x + 1},${g.agentPos.y + 1})`);
       return { ...g, status: 'won' as const, actionLog: logArr };
     }
     return null;
@@ -534,7 +512,7 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
 
   // Always check for gold at the agent's current position after any move or backtrack
   if (game.agentPos.x === game.goldPos.x && game.agentPos.y === game.goldPos.y) {
-    log.push(`[GOLD] Agent found the gold! WON! (at ${game.agentPos.x + 1},${game.agentPos.y + 1})`);
+    log.push(`Agent found the gold! WON! (at ${game.agentPos.x + 1},${game.agentPos.y + 1})`);
     return { ...game, status: 'won', actionLog: log };
   }
 
@@ -612,7 +590,7 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
     }
   }
   if (goldNearby) {
-    log.push(`[GOLD] You are lucky, gold is near! (at ${curr.x + 1},${curr.y + 1})`);
+    log.push(`You are lucky, gold is near! (at ${curr.x + 1},${curr.y + 1})`);
   }
 
   // --- MOVEMENT: DFS or A* ---
@@ -673,12 +651,12 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
     // After moving, check for gold in neighbors and log if found
     const goldNear = getAdjacent(pos.x, pos.y).some(n => game.board[n.y][n.x].type === 'gold');
     if (goldNear) {
-      log.push(`[GOLD] You are lucky, gold is near! (at ${pos.x + 1},${pos.y + 1})`);
+      log.push(`You are lucky, gold is near! (at ${pos.x + 1},${pos.y + 1})`);
     }
     // Always check for gold/pit/wumpus at the new cell, even if already visited
     const cell = game.board[pos.y][pos.x];
     if (cell.type === 'gold') {
-      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      log.push(`Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
       return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
     }
     if (cell.type === 'pit') {
@@ -698,7 +676,7 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
     const pos = game.agentPos;
     const cell = game.board[pos.y][pos.x];
     if (cell.type === 'gold') {
-      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      log.push(`Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
       return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
     }
     if (cell.type === 'pit') {
