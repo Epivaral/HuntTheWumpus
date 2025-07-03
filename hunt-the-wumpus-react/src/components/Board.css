@@ -11,7 +11,7 @@
   grid-template-columns: repeat(20, 40px);
   grid-template-rows: repeat(20, 40px);
   gap: 1px;
-  background: #444;
+  background: #6b4b2a; /* match floor color */
   margin: 0 auto;
   width: max-content;
   border-radius: 12px;
@@ -20,8 +20,8 @@
 .cell {
   width: 40px;
   height: 40px;
-  background: #2D1F39;
-  border: 1px solid #444;
+  background: #6b4b2a; /* brown floor color */
+  border: 1px solid #6b4b2a; /* match floor color */
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -30,7 +30,7 @@
 }
 
 .cell.explored {
-  background: #2d4a2d;
+  background: #976c42; /* much lighter tan for explored/visited */
 }
 
 .cell img {

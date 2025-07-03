@@ -10,6 +10,9 @@ interface BoardProps {
 }
 
 const Board: React.FC<BoardProps> = ({ game }) => {
+  // Use cosmetic fog grid from game state
+  const fog = game.fog;
+
   return (
     <div className="board-container" style={{ position: 'relative' }}>
       {/* Column numbers */}
@@ -28,14 +31,21 @@ const Board: React.FC<BoardProps> = ({ game }) => {
         </div>
         <div className="board">
           {game.board.map((row, y) =>
-            row.map((cell, x) => (
-              <Cell
-                key={`${x},${y}`}
-                type={cell.type}
-                explored={cell.explored || game.explored[y][x]}
-                hasAgent={game.agentPos.x === x && game.agentPos.y === y}
-              />
-            ))
+            row.map((cell, x) => {
+              // Use fog grid for cosmetic fog
+              const fogged = fog[y][x];
+              // A cell is explored (walked path) if marked as explored in game.explored
+              const isExplored = cell.explored || game.explored[y][x];
+              return (
+                <Cell
+                  key={`${x},${y}`}
+                  type={cell.type}
+                  explored={isExplored}
+                  hasAgent={game.agentPos.x === x && game.agentPos.y === y}
+                  fogged={fogged}
+                />
+              );
+            })
           )}
         </div>
       </div>

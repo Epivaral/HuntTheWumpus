@@ -150,6 +150,19 @@ export function createNewGame(stats: { games: number; victories: number }): Game
   // Place gold last so it is never overwritten
   board[goldPos.y][goldPos.x] = { type: 'gold', explored: false };
 
+  // Initialize fog grid: true = fogged, false = visible
+  const fog = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(true));
+  // Reveal agent's initial visible area
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const x = agentPos.x + dx;
+      const y = agentPos.y + dy;
+      if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+        fog[y][x] = false;
+      }
+    }
+  }
+
   return {
     board,
     agentPos,
@@ -158,6 +171,7 @@ export function createNewGame(stats: { games: number; victories: number }): Game
     batPositions,
     pitPositions,
     explored: Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(false)),
+    fog, // <-- cosmetic fog grid
     status: 'playing',
     actionLog: [
       `Game started. Agent at (${agentPos.x + 1},${agentPos.y + 1})`,
@@ -223,7 +237,6 @@ export function agentStep(game: GameState): GameState {
   if (currCell.type === 'wall') checks.push('wall');
   // Always check for adjacent threats
   const adj = getAdjacent(curr.x, curr.y);
-  const neighbors = getAdjacent(curr.x, curr.y); // <-- Fix: define neighbors for DFS and sensory logic
   if (adj.some(n => game.board[n.y][n.x].type === 'wumpus')) checks.push('adjacent wumpus');
   if (adj.some(n => game.board[n.y][n.x].type === 'pit')) checks.push('adjacent pit');
   if (adj.some(n => game.board[n.y][n.x].type === 'bat')) checks.push('adjacent bat');
@@ -363,6 +376,7 @@ export function agentStep(game: GameState): GameState {
     moved = true;
   } else {
     // Prefer unvisited, non-wall neighbor if gold is not adjacent
+    const neighbors = getAdjacent(curr.x, curr.y);
     for (const n of neighbors) {
       if (!agent.visited[n.y][n.x] && game.board[n.y][n.x].type !== 'wall') {
         agent.stack.push(n);
@@ -378,7 +392,6 @@ export function agentStep(game: GameState): GameState {
   // Only mark as visited and log for the cell the agent actually moves to
   if (agent.stack.length > 0) {
     const pos = agent.stack[agent.stack.length - 1];
-    // Only mark as visited if the agent is actually moving to this cell now and it's not a wall
     if ((game.agentPos.x !== pos.x || game.agentPos.y !== pos.y) && game.board[pos.y][pos.x].type !== 'wall') {
       agent.visited[pos.y][pos.x] = true;
       game.explored[pos.y][pos.x] = true;
@@ -389,6 +402,7 @@ export function agentStep(game: GameState): GameState {
     if (winAfterStackMove) return winAfterStackMove;
     // Sensory warnings for new cell (after move)
     let sensedWumpus2 = false, sensedPit2 = false, sensedBat2 = false;
+    const neighbors = getAdjacent(pos.x, pos.y);
     for (const n of neighbors) {
       const t = game.board[n.y][n.x].type;
       if (t === 'wumpus') sensedWumpus2 = true;
@@ -444,7 +458,20 @@ export function agentStep(game: GameState): GameState {
     log.push('No moves left. Agent is stuck.');
     return { ...game, status: 'lost', actionLog: log };
   }
-  return { ...game, actionLog: log };
+  // Reveal fog for current agent position (immutably)
+  // Inline fog update logic here for clarity
+  const { agentPos, fog } = game;
+  const newFog = fog.map(row => [...row]);
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const x = agentPos.x + dx;
+      const y = agentPos.y + dy;
+      if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+        newFog[y][x] = false;
+      }
+    }
+  }
+  return { ...game, actionLog: log, explored: game.explored, fog: newFog };
 }
 
 // Agent step with algorithm selector: uses DFS or A* based on game.agentState.algorithm (default: DFS)
@@ -694,7 +721,20 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
     log.push('No moves left. Agent is stuck.');
     return { ...game, status: 'lost', actionLog: log };
   }
-  return { ...game, actionLog: log };
+  // Reveal fog for current agent position (immutably)
+  // Inline fog update logic here for clarity
+  const { agentPos, fog } = game;
+  const newFog = fog.map(row => [...row]);
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const x = agentPos.x + dx;
+      const y = agentPos.y + dy;
+      if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+        newFog[y][x] = false;
+      }
+    }
+  }
+  return { ...game, actionLog: log, explored: game.explored, fog: newFog };
 }
 
 // A* pathfinding: returns a path from start to goal, or [] if no path

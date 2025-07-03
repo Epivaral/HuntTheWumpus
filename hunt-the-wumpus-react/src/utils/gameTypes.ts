@@ -22,6 +22,7 @@ export interface GameState {
   batPositions: { x: number; y: number }[];
   pitPositions: { x: number; y: number }[];
   explored: boolean[][];
+  fog: boolean[][]; // true = fogged, false = visible
   status: 'playing' | 'won' | 'lost';
   agentState?: AgentState;
   actionLog?: string[];
