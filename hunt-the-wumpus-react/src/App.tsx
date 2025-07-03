@@ -75,13 +75,14 @@ const App: React.FC = () => {
           canStep={game.status === 'playing'}
         />
       </div>
-      {/* Center column: Board */}
-      <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', marginTop: 48 }}>
-        <Board game={game} />
-      </div>
-      {/* Right column: Action log */}
-      <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 32, marginTop: 48 }}>
-        <div style={{ background: '#222', color: '#fff', padding: 12, borderRadius: 8, maxHeight: 600, overflowY: 'auto', fontSize: 14, minWidth: 340, width: 340 }}>
+      {/* Center and right columns: Board and Action log side by side */}
+      <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', marginTop: 10 }}>
+        {/* Center: Board */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <Board game={game} />
+        </div>
+        {/* Right: Action Log */}
+        <div style={{ background: '#222', color: '#fff', padding: 12, borderRadius: 8, maxHeight: 600, overflowY: 'auto', fontSize: 14, minWidth: 340, width: 340, marginLeft: 40, marginTop: 0, alignSelf: 'flex-start', boxSizing: 'border-box' }}>
           <b>Action Log:</b>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {log.slice(-40).map((entry, i) => {
