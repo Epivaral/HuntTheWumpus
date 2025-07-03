@@ -43,11 +43,11 @@ with the help of Github Copilot, I was able to give this game a proper frontend 
 
   If the shot hits (1/8 chance), the agent wins. If it misses or has no arrows left, the agent must continue exploring. The agent starts with 3 arrows and can only shoot once per move.
 
-- **Pit (x4):** If the agent enters a pit cell, it immediately loses.
+- **Pit (x2):** If the agent enters a pit cell, it immediately loses.
 
   If adjacent, the agent receives the message "You feel a breeze" and will backtrack to avoid the pit.
 
-- **Bat (x8):** If the agent enters a bat cell, it is teleported to a random empty cell, and its exploration stack is reset (visited cells are kept, so the agent does not revisit them).
+- **Bat (x4):** If the agent enters a bat cell, it is teleported to a random empty cell, and its exploration stack is reset (visited cells are kept, so the agent does not revisit them).
 
   If adjacent, the agent receives the message "You hear flapping" and may risk entering the cell once.
   

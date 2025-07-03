@@ -1,8 +1,35 @@
 import { GameState, Cell, CellType, AgentState } from './gameTypes';
 
 const BOARD_SIZE = 20;
-const NUM_BATS = 1;
-const NUM_PITS = 1;
+const NUM_BATS = 4;
+const NUM_PITS = 2;
+
+// Predefined wall cluster shapes (all size 5, all rotations)
+const WALL_SHAPES_5 = [
+  // I shapes
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:0,dy:2}, {dx:0,dy:3}, {dx:0,dy:4} ], // vertical
+  [ {dx:0,dy:0}, {dx:1,dy:0}, {dx:2,dy:0}, {dx:3,dy:0}, {dx:4,dy:0} ], // horizontal
+  // L shapes
+  [ {dx:0,dy:0}, {dx:1,dy:0}, {dx:2,dy:0}, {dx:2,dy:1}, {dx:2,dy:2} ],
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:0,dy:2}, {dx:1,dy:2}, {dx:2,dy:2} ],
+  [ {dx:0,dy:0}, {dx:-1,dy:0}, {dx:-2,dy:0}, {dx:-2,dy:1}, {dx:-2,dy:2} ],
+  [ {dx:0,dy:0}, {dx:0,dy:-1}, {dx:0,dy:-2}, {dx:1,dy:-2}, {dx:2,dy:-2} ],
+  // T shapes
+  [ {dx:0,dy:0}, {dx:-1,dy:1}, {dx:0,dy:1}, {dx:1,dy:1}, {dx:0,dy:2} ],
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:1,dy:0}, {dx:0,dy:-1}, {dx:-1,dy:0} ],
+  [ {dx:0,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:1,dy:0}, {dx:0,dy:-1} ],
+  [ {dx:0,dy:0}, {dx:0,dy:-1}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:1,dy:0} ],
+  // U shapes
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:0,dy:2}, {dx:1,dy:0}, {dx:1,dy:2} ],
+  [ {dx:0,dy:0}, {dx:1,dy:0}, {dx:2,dy:0}, {dx:0,dy:1}, {dx:2,dy:1} ],
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:0,dy:2}, {dx:-1,dy:0}, {dx:-1,dy:2} ],
+  [ {dx:0,dy:0}, {dx:-1,dy:0}, {dx:-2,dy:0}, {dx:0,dy:1}, {dx:-2,dy:1} ],
+  // Plus shape
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:0,dy:-1}, {dx:1,dy:0}, {dx:-1,dy:0} ],
+  // Zigzag
+  [ {dx:0,dy:0}, {dx:1,dy:0}, {dx:1,dy:1}, {dx:2,dy:1}, {dx:2,dy:2} ],
+  [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:-1,dy:1}, {dx:-1,dy:2}, {dx:-2,dy:2} ],
+];
 
 function getRandomEmptyCell(occupied: Set<string>, forbidden: Set<string> = new Set()): { x: number; y: number } {
   let x, y;
@@ -14,9 +41,40 @@ function getRandomEmptyCell(occupied: Set<string>, forbidden: Set<string> = new 
   return { x, y };
 }
 
+function randomWallCluster(start: {x: number, y: number}, occupied: Set<string>, forbidden: Set<string>, minSize = 5, maxSize = 15): {x: number, y: number}[] {
+  const cluster: {x: number, y: number}[] = [start];
+  const seen = new Set([`${start.x},${start.y}`]);
+  let frontier = [start];
+  while (cluster.length < maxSize && frontier.length > 0) {
+    const nextFrontier: {x: number, y: number}[] = [];
+    for (const cell of frontier) {
+      const adj = [
+        {x: cell.x+1, y: cell.y}, {x: cell.x-1, y: cell.y},
+        {x: cell.x, y: cell.y+1}, {x: cell.x, y: cell.y-1}
+      ];
+      for (const n of adj) {
+        if (
+          n.x >= 0 && n.x < BOARD_SIZE && n.y >= 0 && n.y < BOARD_SIZE &&
+          !occupied.has(`${n.x},${n.y}`) && !forbidden.has(`${n.x},${n.y}`) && !seen.has(`${n.x},${n.y}`)
+        ) {
+          if (Math.random() < 0.7 || cluster.length < minSize) { // bias to grow until minSize
+            cluster.push(n);
+            nextFrontier.push(n);
+            seen.add(`${n.x},${n.y}`);
+            if (cluster.length >= maxSize) break;
+          }
+        }
+      }
+      if (cluster.length >= maxSize) break;
+    }
+    frontier = nextFrontier;
+  }
+  return cluster.length >= minSize ? cluster : [];
+}
+
 function markForbiddenArea(center: {x: number, y: number}, forbidden: Set<string>, skipCenter = false) {
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
+  for (let dy = -3; dy <= 3; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
       const x = center.x + dx;
       const y = center.y + dy;
       if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
@@ -30,28 +88,13 @@ function markForbiddenArea(center: {x: number, y: number}, forbidden: Set<string
 export function createNewGame(stats: { games: number; victories: number }): GameState {
   const occupied = new Set<string>();
   const forbidden = new Set<string>();
-  // Place wall clusters (I, L, T shapes)
+  // Place wall clusters (predefined shapes, all size 5)
   const NUM_WALLS = Math.floor(BOARD_SIZE * BOARD_SIZE * 0.10); // 10% of the board
   const wallPositions: { x: number; y: number }[] = [];
-  const wallShapes = [
-    // I shapes (vertical, horizontal)
-    [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:0,dy:2} ],
-    [ {dx:0,dy:0}, {dx:1,dy:0}, {dx:2,dy:0} ],
-    // L shapes (4 rotations)
-    [ {dx:0,dy:0}, {dx:1,dy:0}, {dx:1,dy:1} ],
-    [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:1,dy:1} ],
-    [ {dx:0,dy:0}, {dx:-1,dy:0}, {dx:-1,dy:1} ],
-    [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:-1,dy:1} ],
-    // T shapes (4 rotations)
-    [ {dx:0,dy:0}, {dx:-1,dy:1}, {dx:0,dy:1}, {dx:1,dy:1} ],
-    [ {dx:0,dy:0}, {dx:0,dy:1}, {dx:1,dy:0}, {dx:0,dy:-1} ],
-    [ {dx:0,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:1,dy:0} ],
-    [ {dx:0,dy:0}, {dx:0,dy:-1}, {dx:-1,dy:0}, {dx:0,dy:1} ],
-  ];
   let wallCellsPlaced = 0;
   while (wallCellsPlaced < NUM_WALLS) {
     // Randomly pick a shape
-    const shape = wallShapes[Math.floor(Math.random() * wallShapes.length)];
+    const shape = WALL_SHAPES_5[Math.floor(Math.random() * WALL_SHAPES_5.length)];
     // Randomly pick a starting cell
     const x0 = Math.floor(Math.random() * BOARD_SIZE);
     const y0 = Math.floor(Math.random() * BOARD_SIZE);
@@ -64,6 +107,7 @@ export function createNewGame(stats: { games: number; victories: number }): Game
         forbidden.add(`${x},${y}`);
         occupied.add(`${x},${y}`);
         wallCellsPlaced++;
+        if (wallCellsPlaced >= NUM_WALLS) return;
       });
     }
     // Prevent infinite loop if board is too full
