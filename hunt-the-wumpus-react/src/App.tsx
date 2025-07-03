@@ -2,7 +2,7 @@ import React from 'react';
 import Board from './components/Board';
 import Stats from './components/Stats';
 import Controls from './components/Controls';
-import { createNewGame, createAgentState, agentStep } from './utils/gameLogic';
+import { createNewGame, createAgentState, agentStepWithAlgorithm } from './utils/gameLogic';
 import { GameState } from './utils/gameTypes';
 import './App.css';
 
@@ -16,6 +16,7 @@ const App: React.FC = () => {
   });
   const [autoRunning, setAutoRunning] = React.useState(false);
   const [log, setLog] = React.useState<string[]>(game.actionLog || []);
+  const [algorithm, setAlgorithm] = React.useState<string>('dfs');
 
   React.useEffect(() => {
     setLog(game.actionLog || []);
@@ -43,7 +44,7 @@ const App: React.FC = () => {
   };
 
   const handleStep = () => {
-    setGame((prev) => agentStep({ ...prev, agentState: prev.agentState }));
+    setGame((prev) => agentStepWithAlgorithm({ ...prev, agentState: prev.agentState }, algorithm as 'dfs' | 'astar'));
   };
 
   // Auto play effect
@@ -59,48 +60,42 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="App" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100vw', alignItems: 'stretch' }}>
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', width: '100%', margin: '8px 0 0 0', paddingLeft: 32 }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: '0 0 auto' }}>Hunt the Wumpus</h1>
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginLeft: 32, gap: 12 }}>
-          <Controls
-            onNewGame={handleNewGame}
-            onStep={handleStep}
-            canStep={game.status === 'playing'}
-          />
-          <button
-            onClick={handleAutoPlay}
-            disabled={game.status !== 'playing'}
-            style={{ minWidth: 120, height: 28, fontSize: 15, borderRadius: 4, marginLeft: 4, marginRight: 4, padding: '0 12px', boxSizing: 'border-box', verticalAlign: 'middle' }}
-          >
-            {autoRunning ? 'Pause Auto' : 'Auto Play'}
-          </button>
-        </div>
+    <div className="App" style={{ display: 'flex', flexDirection: 'row', minHeight: '100vh', width: '100vw', alignItems: 'flex-start', justifyContent: 'flex-start' }}>
+      {/* Left column: Stats panel */}
+      <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '32px 0 0 32px' }}>
+        <Stats
+          game={game}
+          stats={stats}
+          algorithm={algorithm}
+          setAlgorithm={setAlgorithm}
+          onNewGame={handleNewGame}
+          onStep={handleStep}
+          onAuto={handleAutoPlay}
+          autoRunning={autoRunning}
+          canStep={game.status === 'playing'}
+        />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flex: 1, width: '100%', marginTop: 0 }}>
-        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 32 }}>
-          <Stats game={game} stats={stats} />
-        </div>
-        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Board game={game} />
-        </div>
-        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 32 }}>
-          <div style={{ background: '#222', color: '#fff', marginTop: 0, padding: 12, borderRadius: 8, maxHeight: 400, overflowY: 'auto', fontSize: 14, minWidth: 340, width: 340 }}>
-            <b>Action Log:</b>
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {log.slice(-40).map((entry, i) => {
-                let color = '#fff';
-                if (/^\[GOLD\]/.test(entry)) color = 'gold';
-                else if (/WON!|killed the Wumpus|found the gold/i.test(entry)) color = '#00e676'; // green
-                else if (/Lost!|fell into a pit|encountered the Wumpus/i.test(entry)) color = '#ff7043'; // orange/red
-                else if (/warning|breeze|smell|hear flapping/i.test(entry)) color = '#b388ff'; // purple
-                else if (/shoots|arrow|teleport|carried by bats/i.test(entry)) color = '#4fc3f7'; // light blue
-                return (
-                  <li key={i} style={{ color }}>{entry.replace(/^\[GOLD\]\s*/, '')}</li>
-                );
-              })}
-            </ul>
-          </div>
+      {/* Center column: Board */}
+      <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', marginTop: 48 }}>
+        <Board game={game} />
+      </div>
+      {/* Right column: Action log */}
+      <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 32, marginTop: 48 }}>
+        <div style={{ background: '#222', color: '#fff', padding: 12, borderRadius: 8, maxHeight: 600, overflowY: 'auto', fontSize: 14, minWidth: 340, width: 340 }}>
+          <b>Action Log:</b>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {log.slice(-40).map((entry, i) => {
+              let color = '#fff';
+              if (/^\[GOLD\]/.test(entry)) color = 'gold';
+              else if (/WON!|killed the Wumpus|found the gold/i.test(entry)) color = '#00e676'; // green
+              else if (/Lost!|fell into a pit|encountered the Wumpus/i.test(entry)) color = '#ff7043'; // orange/red
+              else if (/warning|breeze|smell|hear flapping/i.test(entry)) color = '#b388ff'; // purple
+              else if (/shoots|arrow|teleport|carried by bats/i.test(entry)) color = '#4fc3f7'; // light blue
+              return (
+                <li key={i} style={{ color }}>{entry.replace(/^\[GOLD\]\s*/, '')}</li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     </div>

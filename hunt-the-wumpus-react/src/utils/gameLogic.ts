@@ -468,3 +468,295 @@ export function agentStep(game: GameState): GameState {
   }
   return { ...game, actionLog: log };
 }
+
+// Agent step with algorithm selector: uses DFS or A* based on game.agentState.algorithm (default: DFS)
+export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'astar'): GameState {
+  if (!game.agentState || game.status !== 'playing') return game;
+  const agent = game.agentState;
+  let log = game.actionLog ? [...game.actionLog] : [];
+
+  // --- DETAILED LOGGING: Log all checks performed at this cell ---
+  const curr = agent.stack.length > 0 ? agent.stack[agent.stack.length - 1] : game.agentPos;
+  const currCell = game.board[curr.y][curr.x];
+  const checks = [];
+  if (currCell.type === 'gold') checks.push('gold');
+  if (currCell.type === 'pit') checks.push('pit');
+  if (currCell.type === 'wumpus') checks.push('wumpus');
+  if (currCell.type === 'bat') checks.push('bat');
+  if (currCell.type === 'wall') checks.push('wall');
+  // Always check for adjacent threats
+  const adj = getAdjacent(curr.x, curr.y);
+  if (adj.some(n => game.board[n.y][n.x].type === 'wumpus')) checks.push('adjacent wumpus');
+  if (adj.some(n => game.board[n.y][n.x].type === 'pit')) checks.push('adjacent pit');
+  if (adj.some(n => game.board[n.y][n.x].type === 'bat')) checks.push('adjacent bat');
+  if (adj.some(n => game.board[n.y][n.x].type === 'gold')) checks.push('adjacent gold');
+  if (adj.some(n => game.board[n.y][n.x].type === 'wall')) checks.push('adjacent wall');
+  log.push(`Agent at (${curr.x + 1},${curr.y + 1}): checked for ${checks.length ? checks.join(', ') : 'nothing special'}`);
+
+  // --- WUMPUS SHOOTING LOGIC: Check for adjacent Wumpus and shoot if possible (ALWAYS do this before moving) ---
+  for (const n of adj) {
+    if (game.board[n.y][n.x].type === 'wumpus' && agent.arrows > 0) {
+      agent.arrows--;
+      log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
+      // 1/8 probability to hit
+      if (Math.random() < 0.125) {
+        game.board[n.y][n.x].type = 'empty';
+        log.push('Agent killed the Wumpus! WON!');
+        return { ...game, status: 'won', actionLog: log };
+      } else {
+        log.push('Agent missed the Wumpus and continues exploring.');
+      }
+      break; // Only shoot once per step
+    }
+  }
+
+  // Helper to check instant win after any move
+  function checkGoldWin(g: GameState, a: typeof agent, logArr: string[]) {
+    if (g.agentPos.x === g.goldPos.x && g.agentPos.y === g.goldPos.y) {
+      logArr.push(`[GOLD] Agent found the gold! WON! (at ${g.agentPos.x + 1},${g.agentPos.y + 1})`);
+      return { ...g, status: 'won' as const, actionLog: logArr };
+    }
+    return null;
+  }
+
+  // Check instant win at the start
+  const winStart = checkGoldWin(game, agent, log);
+  if (winStart) return winStart;
+
+  // Do not mark wall cells as visited/explored, and treat as stuck if agent is on a wall (defensive)
+  if (currCell.type === 'wall') {
+    log.push('Agent is stuck on a wall cell. This should not happen.');
+    return { ...game, status: 'lost', actionLog: log };
+  }
+  agent.visited[curr.y][curr.x] = true;
+  game.explored[curr.y][curr.x] = true;
+  game.agentPos = { x: curr.x, y: curr.y };
+
+  // Always check for gold at the agent's current position after any move or backtrack
+  if (game.agentPos.x === game.goldPos.x && game.agentPos.y === game.goldPos.y) {
+    log.push(`[GOLD] Agent found the gold! WON! (at ${game.agentPos.x + 1},${game.agentPos.y + 1})`);
+    return { ...game, status: 'won', actionLog: log };
+  }
+
+  // Check for threats at current cell (remove duplicate gold win logic)
+  const cell = game.board[curr.y][curr.x];
+  if (cell.type === 'pit') {
+    log.push(`Agent fell into a pit at this cell. Lost! (at ${curr.x + 1},${curr.y + 1})`);
+    return { ...game, agentPos: { x: curr.x, y: curr.y }, status: 'lost', actionLog: log };
+  }
+  if (cell.type === 'wumpus') {
+    log.push(`Agent encountered the Wumpus at this cell. Lost! (at ${curr.x + 1},${curr.y + 1})`);
+    return { ...game, agentPos: { x: curr.x, y: curr.y }, status: 'lost', actionLog: log };
+  }
+  if (cell.type === 'bat') {
+    // Bat: teleport, reset stack but keep visited and known dangers
+    const empty: { x: number; y: number }[] = [];
+    for (let y = 0; y < BOARD_SIZE; y++) for (let x = 0; x < BOARD_SIZE; x++)
+      if (game.board[y][x].type === 'empty' && !agent.visited[y][x]) empty.push({ x, y });
+    // Exclude wall cells from teleport destinations
+    for (let y = 0; y < BOARD_SIZE; y++) for (let x = 0; x < BOARD_SIZE; x++) {
+      if (game.board[y][x].type === 'wall') {
+        // Remove any wall cell from empty[] if present
+        const idx = empty.findIndex(pos => pos.x === x && pos.y === y);
+        if (idx !== -1) empty.splice(idx, 1);
+      }
+    }
+    if (empty.length > 0) {
+      const idx = Math.floor(Math.random() * empty.length);
+      agent.stack = [empty[idx]];
+      log.push(`Agent was carried by bats from (${curr.x + 1},${curr.y + 1}) to (${empty[idx].x + 1},${empty[idx].y + 1})! Exploration history reset, known dangers kept.`);
+      game.agentPos = { x: empty[idx].x, y: empty[idx].y };
+      // After teleport, check for threats at new cell
+      const newCell = game.board[empty[idx].y][empty[idx].x];
+      if (newCell.type === 'gold') {
+        log.push(`Agent found the gold! WON! (at ${empty[idx].x + 1},${empty[idx].y + 1})`);
+        return { ...game, agentPos: { x: empty[idx].x, y: empty[idx].y }, status: 'won', actionLog: log };
+      }
+      if (newCell.type === 'pit') {
+        log.push(`Agent fell into a pit at this cell. Lost! (at ${empty[idx].x + 1},${empty[idx].y + 1})`);
+        return { ...game, agentPos: { x: empty[idx].x, y: empty[idx].y }, status: 'lost', actionLog: log };
+      }
+      if (newCell.type === 'wumpus') {
+        log.push(`Agent encountered the Wumpus at this cell. Lost! (at ${empty[idx].x + 1},${empty[idx].y + 1})`);
+        return { ...game, agentPos: { x: empty[idx].x, y: empty[idx].y }, status: 'lost', actionLog: log };
+      }
+      // Also check if the new cell is gold after stack update (for consistency)
+      const pos = agent.stack[agent.stack.length - 1];
+      if (game.board[pos.y][pos.x].type === 'gold') {
+        log.push(`Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+        return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
+      }
+      return { ...game, actionLog: log };
+    }
+  }
+
+  // --- SENSORY WARNINGS: Check for adjacent threats and log warnings ---
+  let sensedWumpus2 = false, sensedPit2 = false, sensedBat2 = false;
+  for (const n of adj) {
+    const t = game.board[n.y][n.x].type;
+    if (t === 'wumpus') sensedWumpus2 = true;
+    if (t === 'pit') sensedPit2 = true;
+    if (t === 'bat') sensedBat2 = true;
+  }
+  if (sensedWumpus2) log.push(`You smell something terrible nearby. (at ${curr.x + 1},${curr.y + 1})`);
+  if (sensedPit2) log.push(`You feel a breeze nearby. (at ${curr.x + 1},${curr.y + 1})`);
+  if (sensedBat2) log.push(`You hear flapping nearby. (at ${curr.x + 1},${curr.y + 1})`);
+
+  // --- GOLD SENSING: Check for adjacent gold and log, always prioritize unvisited neighbors if gold is near ---
+  let goldNearby = false;
+  let goldNeighbor: { x: number; y: number } | null = null;
+  for (const n of adj) {
+    if (game.board[n.y][n.x].type === 'gold') {
+      goldNearby = true;
+      goldNeighbor = n;
+    }
+  }
+  if (goldNearby) {
+    log.push(`[GOLD] You are lucky, gold is near! (at ${curr.x + 1},${curr.y + 1})`);
+  }
+
+  // --- MOVEMENT: DFS or A* ---
+  if (algorithm === 'astar') {
+    // Use A* to find path to gold (excluding current cell)
+    const path = aStarPath(game, curr, game.goldPos);
+    if (path.length > 1) {
+      // Move to next cell in path
+      const next = path[1];
+      agent.stack.push(next);
+    } else {
+      // No path found or already at gold
+      agent.stack.pop();
+    }
+  } else {
+    // DFS logic (as before)
+    let moved = false;
+    if (goldNeighbor && game.board[goldNeighbor.y][goldNeighbor.x].type !== 'wall') {
+      agent.stack.push(goldNeighbor);
+      moved = true;
+    } else {
+      const neighbors = getAdjacent(curr.x, curr.y);
+      for (const n of neighbors) {
+        if (!agent.visited[n.y][n.x] && game.board[n.y][n.x].type !== 'wall') {
+          agent.stack.push(n);
+          moved = true;
+          break;
+        }
+      }
+    }
+    if (!moved) {
+      agent.stack.pop();
+    }
+  }
+
+  // Only mark as visited and log for the cell the agent actually moves to
+  if (agent.stack.length > 0) {
+    const pos = agent.stack[agent.stack.length - 1];
+    if ((game.agentPos.x !== pos.x || game.agentPos.y !== pos.y) && game.board[pos.y][pos.x].type !== 'wall') {
+      agent.visited[pos.y][pos.x] = true;
+      game.explored[pos.y][pos.x] = true;
+    }
+    game.agentPos = { x: pos.x, y: pos.y };
+    const winAfterStackMove = checkGoldWin(game, agent, log);
+    if (winAfterStackMove) return winAfterStackMove;
+    // Sensory warnings for new cell (after move)
+    let sensedWumpus2 = false, sensedPit2 = false, sensedBat2 = false;
+    const neighbors = getAdjacent(pos.x, pos.y);
+    for (const n of neighbors) {
+      const t = game.board[n.y][n.x].type;
+      if (t === 'wumpus') sensedWumpus2 = true;
+      if (t === 'pit') sensedPit2 = true;
+      if (t === 'bat') sensedBat2 = true;
+    }
+    if (sensedWumpus2) log.push(`You smell something terrible nearby. (at ${pos.x + 1},${pos.y + 1})`);
+    if (sensedPit2) log.push(`You feel a breeze nearby. (at ${pos.x + 1},${pos.y + 1})`);
+    if (sensedBat2) log.push(`You hear flapping nearby. (at ${pos.x + 1},${pos.y + 1})`);
+    // After moving, check for gold in neighbors and log if found
+    const goldNear = getAdjacent(pos.x, pos.y).some(n => game.board[n.y][n.x].type === 'gold');
+    if (goldNear) {
+      log.push(`[GOLD] You are lucky, gold is near! (at ${pos.x + 1},${pos.y + 1})`);
+    }
+    // Always check for gold/pit/wumpus at the new cell, even if already visited
+    const cell = game.board[pos.y][pos.x];
+    if (cell.type === 'gold') {
+      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
+    }
+    if (cell.type === 'pit') {
+      log.push(`Agent fell into a pit at this cell. Lost! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
+    }
+    if (cell.type === 'wumpus') {
+      log.push(`Agent encountered the Wumpus at this cell. Lost! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
+    }
+    if (cell.type === 'wall') {
+      log.push('Agent tried to move into a wall cell. This should not happen.');
+      return { ...game, status: 'lost', actionLog: log };
+    }
+  } else {
+    // If stack is empty, check for win/loss at current position as well
+    const pos = game.agentPos;
+    const cell = game.board[pos.y][pos.x];
+    if (cell.type === 'gold') {
+      log.push(`[GOLD] Agent found the gold! WON! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'won', actionLog: log };
+    }
+    if (cell.type === 'pit') {
+      log.push(`Agent fell into a pit at this cell. Lost! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
+    }
+    if (cell.type === 'wumpus') {
+      log.push(`Agent encountered the Wumpus at this cell. Lost! (at ${pos.x + 1},${pos.y + 1})`);
+      return { ...game, agentPos: { x: pos.x, y: pos.y }, status: 'lost', actionLog: log };
+    }
+    if (cell.type === 'wall') {
+      log.push('Agent is stuck on a wall cell. This should not happen.');
+      return { ...game, status: 'lost', actionLog: log };
+    }
+    log.push('No moves left. Agent is stuck.');
+    return { ...game, status: 'lost', actionLog: log };
+  }
+  return { ...game, actionLog: log };
+}
+
+// A* pathfinding: returns a path from start to goal, or [] if no path
+export function aStarPath(game: GameState, start: {x: number, y: number}, goal: {x: number, y: number}): {x: number, y: number}[] {
+  // Only allow movement on empty, gold, or bat cells (not wall, pit, wumpus)
+  function isPassable(x: number, y: number) {
+    const t = game.board[y][x].type;
+    return t === 'empty' || t === 'gold' || t === 'bat';
+  }
+  function heuristic(a: {x: number, y: number}, b: {x: number, y: number}) {
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); // Manhattan distance
+  }
+  const open: Array<{x: number, y: number, f: number, g: number, parent?: {x: number, y: number}}>=[];
+  const closed = new Set<string>();
+  open.push({x: start.x, y: start.y, f: heuristic(start, goal), g: 0});
+  while (open.length > 0) {
+    // Get node with lowest f
+    open.sort((a, b) => a.f - b.f);
+    const current = open.shift()!;
+    if (current.x === goal.x && current.y === goal.y) {
+      // Reconstruct path
+      const path = [];
+      let node: any = current;
+      while (node) {
+        path.push({x: node.x, y: node.y});
+        node = node.parent;
+      }
+      return path.reverse();
+    }
+    closed.add(`${current.x},${current.y}`);
+    for (const {dx, dy} of DIRS) {
+      const nx = current.x + dx, ny = current.y + dy;
+      if (!isValid(nx, ny) || !isPassable(nx, ny) || closed.has(`${nx},${ny}`)) continue;
+      const g = current.g + 1;
+      const h = heuristic({x: nx, y: ny}, goal);
+      // If already in open with lower g, skip
+      const existing = open.find(n => n.x === nx && n.y === ny);
+      if (existing && existing.g <= g) continue;
+      open.push({x: nx, y: ny, f: g + h, g, parent: current});
+    }
+  }
+  return [];
+}
