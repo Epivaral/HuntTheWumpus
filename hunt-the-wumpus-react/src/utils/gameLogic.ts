@@ -252,8 +252,8 @@ export function agentStep(game: GameState): GameState {
     if (game.board[n.y][n.x].type === 'wumpus' && agent.arrows > 0) {
       agent.arrows--;
       log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
-      // 1/8 probability to hit
-      if (Math.random() < 0.125) {
+      // 1/4 probability to hit
+      if (Math.random() <= 0.25) {
         game.board[n.y][n.x].type = 'empty';
         log.push('Agent killed the Wumpus! WON!');
         return { ...game, status: 'won', actionLog: log };
@@ -507,8 +507,8 @@ export function agentStepWithAlgorithm(game: GameState, algorithm: 'dfs' | 'asta
     if (game.board[n.y][n.x].type === 'wumpus' && agent.arrows > 0) {
       agent.arrows--;
       log.push(`Agent senses the Wumpus nearby and shoots. Arrows left: ${agent.arrows}`);
-      // 1/8 probability to hit
-      if (Math.random() < 0.125) {
+      // 1/4 probability to hit
+      if (Math.random() <= 0.25) {
         game.board[n.y][n.x].type = 'empty';
         log.push('Agent killed the Wumpus! WON!');
         return { ...game, status: 'won', actionLog: log };
