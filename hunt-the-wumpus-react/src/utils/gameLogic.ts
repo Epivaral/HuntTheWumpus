@@ -200,6 +200,7 @@ export function agentStep(game: GameState): GameState {
   if (currCell.type === 'wall') checks.push('wall');
   // Always check for adjacent threats
   const adj = getAdjacent(curr.x, curr.y);
+  const neighbors = getAdjacent(curr.x, curr.y); // <-- Fix: define neighbors for DFS and sensory logic
   if (adj.some(n => game.board[n.y][n.x].type === 'wumpus')) checks.push('adjacent wumpus');
   if (adj.some(n => game.board[n.y][n.x].type === 'pit')) checks.push('adjacent pit');
   if (adj.some(n => game.board[n.y][n.x].type === 'bat')) checks.push('adjacent bat');
