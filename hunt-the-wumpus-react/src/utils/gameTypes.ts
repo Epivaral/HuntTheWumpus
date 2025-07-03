@@ -1,4 +1,4 @@
-export type CellType = 'empty' | 'agent' | 'wumpus' | 'bat' | 'pit' | 'gold';
+export type CellType = 'empty' | 'agent' | 'wumpus' | 'bat' | 'pit' | 'gold' | 'wall';
 
 export interface Cell {
   type: CellType;
@@ -9,7 +9,6 @@ export interface AgentState {
   stack: { x: number; y: number }[];
   visited: boolean[][];
   arrows: number;
-  hasGold: boolean;
   path: { x: number; y: number }[];
   autoMode: boolean;
   justShot?: boolean; // Prevents multiple shots per move
